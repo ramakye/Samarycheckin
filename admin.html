@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Samary Care — Admin</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Spline+Sans:wght@400;500;600;700&display=swap');
+  :root{--ink:#1a1d23;--paper:#f4f1ea;--card:#fff;--sage:#4a6b54;--sage-d:#37503f;--clay:#c9744f;--amber:#d9a441;--line:#e2ddd2;--muted:#7a7567;--ok:#3f8a5a;--bad:#c0492f;--shadow:0 1px 2px rgba(26,29,35,.04),0 8px 24px rgba(26,29,35,.06)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Spline Sans',sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(circle at 12% 8%,rgba(74,107,84,.06),transparent 40%),radial-gradient(circle at 88% 92%,rgba(201,116,79,.05),transparent 42%)}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 18px;position:relative;z-index:1}
+  h1,h2,h3{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-.01em}
+  header{padding:22px 0 14px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(140deg,var(--sage),var(--sage-d));display:grid;place-items:center;color:#fff;font-family:'Fraunces';font-size:22px;font-weight:700;box-shadow:var(--shadow)}
+  .brand h1{font-size:22px}.brand p{font-size:12.5px;color:var(--muted);margin-top:1px}
+  main{padding:26px 0 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow);margin-bottom:18px}
+  .card h2{font-size:19px;margin-bottom:4px}.card .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  label{display:block;font-size:12.5px;font-weight:600;margin:14px 0 6px}
+  select,input{width:100%;font-family:'Spline Sans';font-size:15px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fbfaf6;color:var(--ink);transition:.15s}
+  select:focus,input:focus{outline:none;border-color:var(--sage);background:#fff;box-shadow:0 0 0 3px rgba(74,107,84,.12)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:560px){.row{grid-template-columns:1fr}}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:20px;padding:14px;border:none;border-radius:12px;background:var(--clay);color:#fff;font-family:'Spline Sans';font-weight:600;font-size:15px;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+  .btn:hover{filter:brightness(1.05)}.btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);box-shadow:none}
+  .btn.sage{background:var(--sage)}
+  .msg{margin-top:16px;padding:13px 15px;border-radius:12px;font-size:13.5px;display:none}.msg.show{display:block}
+  .msg.ok{background:rgba(63,138,90,.1);color:var(--ok);border:1px solid rgba(63,138,90,.25)}
+  .msg.bad{background:rgba(192,73,47,.09);color:var(--bad);border:1px solid rgba(192,73,47,.22)}
+  .msg.info{background:rgba(217,164,65,.12);color:#9a7416;border:1px solid rgba(217,164,65,.3)}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .pill.live{background:rgba(63,138,90,.14);color:var(--ok)}.pill.livein{background:rgba(217,164,65,.18);color:#946d10}.pill.done{background:rgba(122,117,103,.14);color:var(--muted)}
+  .pill.stale{background:rgba(192,73,47,.15);color:var(--bad)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}@media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat.warn{border-color:var(--bad);background:rgba(192,73,47,.04)}
+  .stat .n{font-family:'Fraunces';font-size:30px;font-weight:600;line-height:1}.stat.warn .n{color:var(--bad)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:6px;font-weight:500}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--line);font-weight:700}
+  td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}tr:last-child td{border-bottom:none}
+  tr.stalerow td{background:rgba(192,73,47,.05)}
+  .tnum{font-variant-numeric:tabular-nums;font-weight:600}.small{font-size:12px;color:var(--muted)}
+  .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.toolbar .grow{flex:1}
+  .iw{width:auto!important;margin:0!important}
+  .loginlock{max-width:400px;margin:30px auto}
+  .danger{color:var(--bad);font-size:12px;cursor:pointer;background:none;border:none;text-decoration:underline}
+  .ce{font-size:12px;display:grid;grid-template-columns:1.4fr .8fr .8fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+  .ce input{padding:8px 10px;font-size:13px}.ce .nm{font-weight:600}
+  @media(max-width:560px){.ce{grid-template-columns:1fr 1fr;}.ce .nm{grid-column:1/-1}}
+  .banner{background:#fff6e2;border:1px solid var(--amber);border-radius:14px;padding:16px 18px;margin:20px 0;font-size:14px}
+  .banner code{background:rgba(0,0,0,.06);padding:2px 6px;border-radius:6px;font-size:12.5px}
+  .alertbar{background:rgba(192,73,47,.08);border:1px solid rgba(192,73,47,.3);color:var(--bad);border-radius:12px;padding:12px 15px;font-size:13.5px;margin-bottom:14px;display:none}
+  .alertbar.show{display:block}
+  .linkbtn{background:none;border:none;color:var(--clay);font-weight:600;cursor:pointer;text-decoration:underline;font-size:13px;font-family:'Spline Sans'}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">S</div>
+      <div><h1>Samary Care</h1><p>Admin dashboard &middot; </p></div>
+    </div>
+  </header>
+  <main>
+    <div id="setup-banner"></div>
+
+    <div id="admin-lock" class="card loginlock">
+      <h2 style="text-align:center">Admin sign in</h2>
+      <p class="sub" style="text-align:center">Use your admin email and password.</p>
+      <label>Email</label><input type="email" id="al-email" placeholder="admin@samarycare.co.uk">
+      <label>Password</label><input type="password" id="al-pass" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;">
+      <button class="btn sage" id="al-btn">Sign in</button>
+      <div class="msg" id="al-msg"></div>
+    </div>
+
+    <div id="admin-body" style="display:none">
+      <div class="toolbar">
+        <div class="grow"><h2 style="font-size:20px">Dashboard</h2><p class="small" id="admin-who">Live data</p></div>
+        <select id="a-month" class="iw"></select>
+        <button class="btn sage iw" id="a-export" style="padding:12px 16px">Payroll CSV</button>
+        <button class="btn ghost iw" id="al-out" style="padding:12px 16px">Sign out</button>
+      </div>
+
+      <div class="alertbar" id="stale-alert"></div>
+
+      <div class="stats">
+        <div class="stat"><div class="n" id="st-now">0</div><div class="l">Checked in now</div></div>
+        <div class="stat"><div class="n" id="st-hours">0</div><div class="l">Hours this month</div></div>
+        <div class="stat"><div class="n" id="st-days">0</div><div class="l">Live-in days this month</div></div>
+        <div class="stat" id="st-stale-card"><div class="n" id="st-stale">0</div><div class="l">Open &gt;18h (check)</div></div>
+      </div>
+
+      <div class="card"><h2>Currently checked in <span class="pill live" style="vertical-align:middle">LIVE</span></h2><p class="sub">Updates the moment staff check in or out. Rows flagged in red have been open over 18 hours - likely a forgotten checkout.</p><div id="a-live"></div></div>
+      <div class="card"><h2>Monthly summary by staff</h2><p class="sub">Hours and live-in days - the payroll basis.</p><div id="a-summary"></div></div>
+      <div class="card"><h2>All shift records</h2><p class="sub">Every check-in for the selected month. Use <strong>edit</strong> to fix times or close a forgotten open shift.</p><div id="a-records"></div></div>
+
+      <div class="card"><h2>Staff &amp; PINs</h2><p class="sub">Add staff and set a 4-6 digit PIN. PINs are hashed before storage.</p>
+        <div class="row"><div><label>Name</label><input id="ns-name" placeholder="Full name"></div><div><label>PIN</label><input id="ns-pin" inputmode="numeric" placeholder="4-6 digits"></div></div>
+        <button class="btn ghost" id="ns-add">Add / update staff</button>
+        <div class="msg" id="ns-msg"></div>
+        <div id="a-stafflist" style="margin-top:14px"></div>
+      </div>
+
+      <div class="card"><h2>Client locations &amp; radius</h2>
+        <p class="sub">Check-in/out is allowed within the radius below. Edit a client name, lat or lng inline, then Save. For coordinates, right-click a spot in Google Maps and copy lat,lng.</p>
+        <label>Check-in radius (metres)</label><input type="number" id="a-radius" style="max-width:160px" value="250">
+        <div id="a-coords" style="margin-top:14px"></div>
+        <div class="row" style="margin-top:14px"><div><label>Add client name</label><input id="nc-name" placeholder="e.g. 12 Example Rd (Dom care)"></div>
+          <div class="row"><div><label>Lat</label><input id="nc-lat" type="number" step="0.0001"></div><div><label>Lng</label><input id="nc-lng" type="number" step="0.0001"></div></div></div>
+        <button class="btn ghost" id="nc-add">Add client</button>
+        <button class="btn sage" id="a-seed" style="margin-top:10px">Seed the 8 rota locations</button>
+        <button class="btn" id="a-savecfg">Save name, radius &amp; coordinate changes</button>
+        <div class="msg" id="cfg-msg"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+const firebaseConfig = {
+  apiKey: "AIzaSyCxLAQuXg_ULHpuFpfuORZxvAL4vtBU0cg",
+  authDomain: "samary-time-logger.firebaseapp.com",
+  projectId: "samary-time-logger",
+  storageBucket: "samary-time-logger.firebasestorage.app",
+  messagingSenderId: "183228495376",
+  appId: "1:183228495376:web:949a9ed9f80c1a532dbc95",
+  measurementId: "G-HCGF5CVTBN"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const RADIUS_DEFAULT=250, STALE_HOURS=18;
+const DEFAULT_CLIENTS=[
+  {name:"94 Camlet Way, Hadley Wood (Dom care)",lat:51.6680,lng:-0.1860},
+  {name:"4 Larman's Road, Enfield (Enfield Unit, Live-in)",lat:51.6610,lng:-0.0290},
+  {name:"31 Northumberland Park (Tottenham Unit)",lat:51.6010,lng:-0.0560},
+  {name:"143 Maltby Drive, Enfield (Zoe's support)",lat:51.6730,lng:-0.0840},
+  {name:"6 & 8 Balfour Mews, Edmonton (Live-in)",lat:51.6160,lng:-0.0590},
+  {name:"3 Balfour Mews, Edmonton (Live-in)",lat:51.6160,lng:-0.0590},
+  {name:"260a Mount Pleasant Road",lat:51.5940,lng:-0.0680},
+  {name:"262 Craven Park Road, Stamford Hill (Homeyra)",lat:51.5720,lng:-0.0760}
+];
+let app,auth,db,CLIENTS=[],STAFF=[],RADIUS=RADIUS_DEFAULT,ALL=[];
+const $=id=>document.getElementById(id);
+function showMsg(id,t,x){const m=$(id);m.className=`msg show ${t}`;m.innerHTML=x;}
+function friendlyErr(e){const c=(e&&e.code)||'';console.error(e);
+  if(c.includes('permission-denied'))return `Permission denied by Firestore. Your account is not recognised as an admin. Check the <code>admins</code> collection has a document whose ID is your Auth UID, and that your security rules are published.`;
+  if(c.includes('unavailable')||c.includes('network'))return `Cannot reach Firestore - check connection and that Firestore exists.`;
+  if(c.includes('wrong-password')||c.includes('invalid-credential')||c.includes('user-not-found'))return `Wrong email or password.`;
+  return `Error: ${c||(e&&e.message)||e}`;}
+function hav(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLng=r(d-b);const x=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+async function hashPin(name,pin){const enc=new TextEncoder().encode('samary::'+name.trim().toLowerCase()+'::'+pin);const buf=await crypto.subtle.digest('SHA-256',enc);return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');}
+function calcHours(a,d){const[ah,am]=a.split(':').map(Number),[dh,dm]=d.split(':').map(Number);let m=(dh*60+dm)-(ah*60+am);if(m<0)m+=1440;return m/60;}
+const monthKey=d=>d.slice(0,7);
+function ageHours(iso){return (Date.now()-new Date(iso).getTime())/3600000;}
+function isStale(s){return s.status==='open'&&s.type==='hourly'&&ageHours(s.checkInAt)>STALE_HOURS;}
+
+if(firebaseConfig.projectId==="PASTE_PROJECT_ID"||!firebaseConfig.projectId){
+  $('setup-banner').innerHTML=`<div class="banner"><strong>Setup needed.</strong> Add your Firebase config to this file's script block.</div>`;
+}
+try{ app=initializeApp(firebaseConfig); auth=getAuth(app); db=getFirestore(app); }catch(e){console.error(e);}
+
+if(auth){
+  onAuthStateChanged(auth, async user=>{
+    if(user && !user.isAnonymous){ await loadClientsAndStaff(); await loadRadius(); enterAdmin(user); }
+  });
+}
+async function loadRadius(){
+  try{const s=await getDoc(doc(db,'config','settings'));RADIUS=s.exists()?(s.data().radiusM||RADIUS_DEFAULT):RADIUS_DEFAULT;}catch(e){RADIUS=RADIUS_DEFAULT;}
+  if($('a-radius'))$('a-radius').value=RADIUS;
+}
+async function loadClientsAndStaff(){
+  try{
+    const cs=await getDocs(collection(db,'clients'));CLIENTS=cs.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name));
+    const ss=await getDocs(collection(db,'staff'));STAFF=ss.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name));
+  }catch(e){console.error(e);}
+  renderStaffList();renderCoords();
+}
+
+$('al-btn').onclick=async()=>{
+  const email=$('al-email').value.trim(),pass=$('al-pass').value;
+  if(!email||!pass)return showMsg('al-msg','bad','Enter email and password.');
+  try{ await signInWithEmailAndPassword(auth,email,pass); }catch(e){ showMsg('al-msg','bad',friendlyErr(e)); }
+};
+$('al-out').onclick=async()=>{ if(dashUnsub)dashUnsub(); await signOut(auth); location.reload(); };
+
+function enterAdmin(user){
+  $('admin-lock').style.display='none';$('admin-body').style.display='block';
+  $('admin-who').textContent=`Signed in as ${user.email} - live data`;
+  buildMonths();listenDashboard();
+}
+function buildMonths(){
+  const sel=$('a-month'),today=new Date().toISOString().slice(0,7),months=new Set([today]);
+  ALL.forEach(s=>months.add(monthKey(s.date||s.start)));
+  const arr=[...months].sort().reverse(),cur=sel.value;
+  sel.innerHTML=arr.map(m=>{const d=new Date(m+'-01');return `<option value="${m}">${d.toLocaleString('en-GB',{month:'long',year:'numeric'})}</option>`;}).join('');
+  if(cur&&arr.includes(cur))sel.value=cur;
+}
+$('a-month').addEventListener('change',renderDash);
+
+let dashUnsub=null;
+function listenDashboard(){
+  if(dashUnsub)dashUnsub();
+  dashUnsub=onSnapshot(collection(db,'shifts'),snap=>{ALL=snap.docs.map(d=>({id:d.id,...d.data()}));buildMonths();renderDash();});
+}
+function renderDash(){
+  const month=$('a-month').value;
+  const m=ALL.filter(s=>monthKey(s.date||s.start)===month);
+  const open=ALL.filter(s=>s.status==='open');
+  const stale=open.filter(isStale);
+  let hours=0,days=0;const staffSet=new Set();
+  m.forEach(s=>{staffSet.add(s.staffName);if(s.type==='hourly'&&s.hours)hours+=s.hours;if(s.type==='livein')days+=s.days;});
+  $('st-now').textContent=open.length;$('st-hours').textContent=hours.toFixed(1);$('st-days').textContent=days;$('st-stale').textContent=stale.length;
+  $('st-stale-card').className=stale.length?'stat warn':'stat';
+
+  const alert=$('stale-alert');
+  if(stale.length){alert.className='alertbar show';alert.innerHTML=`<strong>${stale.length} shift${stale.length>1?'s have':' has'} been open over ${STALE_HOURS} hours</strong> - likely forgotten checkouts. They are flagged below; use <strong>edit</strong> on each to set a departure time and close it.`;}
+  else alert.className='alertbar';
+
+  $('a-live').innerHTML=open.length?`<table><thead><tr><th>Staff</th><th>Client</th><th>Checked in</th><th>Open for</th><th>Dist</th></tr></thead><tbody>`+
+    open.sort((a,b)=>ageHours(b.checkInAt)-ageHours(a.checkInAt)).map(s=>{const st=isStale(s),ag=ageHours(s.checkInAt);
+      return `<tr class="${st?'stalerow':''}"><td><strong>${s.staffName}</strong> ${st?'<span class="pill stale">CHECK</span>':''}</td><td>${s.client.split('(')[0].trim()}</td>
+      <td class="small">${new Date(s.checkInAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+      <td class="small ${st?'':''}">${ag<1?Math.round(ag*60)+'m':ag.toFixed(1)+'h'}</td><td class="small">${s.dist}m</td></tr>`;}).join('')+`</tbody></table>`:`<div class="empty">No one is currently checked in.</div>`;
+
+  const sum={};
+  m.forEach(s=>{sum[s.staffName]=sum[s.staffName]||{hours:0,days:0,shifts:0};sum[s.staffName].shifts++;if(s.type==='hourly'&&s.hours)sum[s.staffName].hours+=s.hours;if(s.type==='livein')sum[s.staffName].days+=s.days;});
+  const names=Object.keys(sum).sort();
+  $('a-summary').innerHTML=names.length?`<table><thead><tr><th>Staff</th><th>Hourly total</th><th>Live-in days</th><th>Shifts</th></tr></thead><tbody>`+
+    names.map(n=>`<tr><td><strong>${n}</strong></td><td class="tnum">${sum[n].hours.toFixed(2)} h</td><td class="tnum">${sum[n].days||'-'}</td><td class="tnum">${sum[n].shifts}</td></tr>`).join('')+`</tbody></table>`:`<div class="empty">No shifts logged this month yet.</div>`;
+
+  const sorted=[...m].sort((a,b)=>(b.checkInAt||'').localeCompare(a.checkInAt||''));
+  $('a-records').innerHTML=sorted.length?`<table><thead><tr><th>Staff</th><th>Client</th><th>Type</th><th>Detail</th><th>Total</th><th></th></tr></thead><tbody>`+
+    sorted.map(s=>{const st=isStale(s);
+      const type=s.type==='livein'?`<span class="pill livein">LIVE-IN</span>`:(s.status==='open'?(st?`<span class="pill stale">OPEN &gt;18h</span>`:`<span class="pill live">OPEN</span>`):`<span class="pill done">HOURLY</span>`);
+      const detail=s.type==='livein'?`${s.start} to ${s.end}`:`${s.date} &middot; ${s.arrival}${s.departure?'-'+s.departure:' (open)'}${s.checkoutDist!=null?` &middot; out ${s.checkoutDist}m`:''}`;
+      const total=s.type==='livein'?`${s.days} day${s.days>1?'s':''}`:(s.hours!=null?`${s.hours.toFixed(2)} h`:'-');
+      return `<tr class="${st?'stalerow':''}"><td><strong>${s.staffName}</strong></td><td class="small">${s.client.split('(')[0].trim()}</td><td>${type}</td><td class="small">${detail}</td><td class="tnum">${total}</td><td style="white-space:nowrap"><button class="linkbtn" data-edit="${s.id}" style="margin-right:10px">edit</button><button class="danger" data-del="${s.id}">delete</button></td></tr>`;
+    }).join('')+`</tbody></table>`:`<div class="empty">No records for this month.</div>`;
+  $('a-records').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(confirm('Delete this record?'))await deleteDoc(doc(db,'shifts',b.dataset.del));});
+  $('a-records').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>adminEdit(b.dataset.edit));
+}
+
+async function adminEdit(id){
+  const s=ALL.find(x=>x.id===id);if(!s)return;
+  const valid=t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(t);
+  try{
+    if(s.type==='livein'){
+      const start=prompt('Start date (YYYY-MM-DD):',s.start);if(start===null)return;
+      const end=prompt('End date (YYYY-MM-DD):',s.end);if(end===null)return;
+      if(end<start){alert('End date must be on or after start date.');return;}
+      const days=Math.round((new Date(end)-new Date(start))/864e5)+1;
+      await updateDoc(doc(db,'shifts',id),{start,end,days});return;
+    }
+    const arrival=prompt('Arrival time (HH:MM):',s.arrival||'');if(arrival===null)return;
+    if(!valid(arrival)){alert('Arrival must look like 09:00');return;}
+    const departure=prompt('Departure time (HH:MM) - leave blank to keep the shift OPEN:',s.departure||'');if(departure===null)return;
+    const upd={arrival};
+    if(departure){if(!valid(departure)){alert('Departure must look like 17:30');return;}upd.departure=departure;upd.status='done';upd.hours=calcHours(arrival,departure);}
+    else{upd.departure=null;upd.status='open';upd.hours=null;}
+    await updateDoc(doc(db,'shifts',id),upd);
+  }catch(e){alert(friendlyErr(e).replace(/<[^>]+>/g,''));}
+}
+
+$('a-export').onclick=()=>{
+  const month=$('a-month').value,m=ALL.filter(s=>monthKey(s.date||s.start)===month);
+  const rows=[["Staff","Client","Type","Date/Start","End","Arrival","Departure","Hours","Live-in days","Status","Checked in at"]];
+  m.forEach(s=>rows.push([s.staffName,s.client,s.type,s.date||s.start,s.end||"",s.arrival||"",s.departure||"",s.hours!=null?s.hours.toFixed(2):"",s.days||"",s.status,s.checkInAt||""]));
+  rows.push([]);rows.push(["PAYROLL SUMMARY - "+month]);rows.push(["Staff","Total hours","Total live-in days"]);
+  const sum={};m.forEach(s=>{sum[s.staffName]=sum[s.staffName]||{h:0,d:0};if(s.hours)sum[s.staffName].h+=s.hours;if(s.days)sum[s.staffName].d+=s.days;});
+  Object.keys(sum).sort().forEach(n=>rows.push([n,sum[n].h.toFixed(2),sum[n].d]));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`samary-payroll-${month}.csv`;a.click();
+};
+
+$('ns-add').onclick=async()=>{
+  const name=$('ns-name').value.trim(),pin=$('ns-pin').value.trim();
+  if(!name)return showMsg('ns-msg','bad','Enter a name.');
+  if(pin&&!/^\d{4,6}$/.test(pin))return showMsg('ns-msg','bad','PIN must be 4-6 digits.');
+  showMsg('ns-msg','info','Saving...');
+  try{
+    const existing=STAFF.find(s=>s.name.toLowerCase()===name.toLowerCase());
+    const data={name};if(pin)data.pinHash=await hashPin(name,pin);
+    if(existing){await updateDoc(doc(db,'staff',existing.id),data);}
+    else{if(!pin)return showMsg('ns-msg','bad','Set a PIN for a new staff member.');await addDoc(collection(db,'staff'),data);}
+    $('ns-name').value='';$('ns-pin').value='';
+    await loadClientsAndStaff();showMsg('ns-msg','ok','Saved.');
+  }catch(e){showMsg('ns-msg','bad',friendlyErr(e));}
+};
+function renderStaffList(){
+  $('a-stafflist').innerHTML=STAFF.length?`<table><thead><tr><th>Name</th><th>PIN set?</th><th></th></tr></thead><tbody>`+
+    STAFF.map(s=>`<tr><td><strong>${s.name}</strong></td><td>${s.pinHash?'yes':'-'}</td><td><button class="danger" data-ds="${s.id}">remove</button></td></tr>`).join('')+`</tbody></table>`:`<div class="empty">No staff yet.</div>`;
+  $('a-stafflist').querySelectorAll('[data-ds]').forEach(b=>b.onclick=async()=>{if(confirm('Remove this staff member?')){await deleteDoc(doc(db,'staff',b.dataset.ds));await loadClientsAndStaff();}});
+}
+
+const escAttr=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+function renderCoords(){
+  const head=`<div class="ce ce-head"><div>Client name</div><div>Lat</div><div>Lng</div><div></div><div></div></div>`;
+  $('a-coords').innerHTML=(CLIENTS.length?head:'')+CLIENTS.map(c=>`<div class="ce">
+    <input class="nm" data-id="${c.id}" data-f="name" type="text" value="${escAttr(c.name)}">
+    <input data-id="${c.id}" data-f="lat" type="number" step="0.0001" value="${c.lat}">
+    <input data-id="${c.id}" data-f="lng" type="number" step="0.0001" value="${c.lng}">
+    <a class="small" href="https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}" target="_blank">map</a>
+    <button class="danger" data-dc="${c.id}">del</button></div>`).join('')||`<div class="empty">No clients yet - use Seed the 8 rota locations.</div>`;
+  $('a-coords').querySelectorAll('[data-dc]').forEach(b=>b.onclick=async()=>{if(confirm('Delete this client?')){await deleteDoc(doc(db,'clients',b.dataset.dc));await loadClientsAndStaff();}});
+}
+$('nc-add').onclick=async()=>{
+  const name=$('nc-name').value.trim(),lat=parseFloat($('nc-lat').value),lng=parseFloat($('nc-lng').value);
+  if(!name||isNaN(lat)||isNaN(lng))return showMsg('cfg-msg','bad','Enter name, lat and lng.');
+  showMsg('cfg-msg','info','Saving...');
+  try{await addDoc(collection(db,'clients'),{name,lat,lng});$('nc-name').value='';$('nc-lat').value='';$('nc-lng').value='';await loadClientsAndStaff();showMsg('cfg-msg','ok','Client added.');}
+  catch(e){showMsg('cfg-msg','bad',friendlyErr(e));}
+};
+$('a-seed').onclick=async()=>{
+  if(!confirm('Add the 8 default rota locations? (Skips ones already present.)'))return;
+  showMsg('cfg-msg','info','Seeding...');
+  try{for(const c of DEFAULT_CLIENTS){if(!CLIENTS.find(x=>x.name===c.name))await addDoc(collection(db,'clients'),c);}await loadClientsAndStaff();showMsg('cfg-msg','ok','Default locations seeded. Verify each pin.');}
+  catch(e){showMsg('cfg-msg','bad',friendlyErr(e));}
+};
+$('a-savecfg').onclick=async()=>{
+  const r=parseInt($('a-radius').value,10);if(isNaN(r)||r<10)return showMsg('cfg-msg','bad','Radius must be a number >= 10.');
+  showMsg('cfg-msg','info','Saving...');
+  try{
+    await setDoc(doc(db,'config','settings'),{radiusM:r});RADIUS=r;
+    const edits={};
+    $('a-coords').querySelectorAll('input').forEach(inp=>{
+      const id=inp.dataset.id,f=inp.dataset.f;if(!id)return;
+      edits[id]=edits[id]||{};
+      edits[id][f]= f==='name' ? inp.value.trim() : parseFloat(inp.value);
+    });
+    const updates=[];
+    for(const id in edits){
+      const e=edits[id],data={};
+      if(e.name) data.name=e.name;
+      if(!isNaN(e.lat)) data.lat=e.lat;
+      if(!isNaN(e.lng)) data.lng=e.lng;
+      if(Object.keys(data).length) updates.push(updateDoc(doc(db,'clients',id),data));
+    }
+    await Promise.all(updates);await loadClientsAndStaff();showMsg('cfg-msg','ok','Client details and radius saved.');
+  }catch(e){showMsg('cfg-msg','bad',friendlyErr(e));}
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Samary Care — Staff Check-in</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">S</div>
+      <div><h1>Samary Care</h1><p>Staff check-in · location verified</p></div>
+    </div>
+  </header>
+  <main>
+    <div id="setup-banner"></div>
+
+    <!-- staff login -->
+    <div class="card loginlock" id="staff-login">
+      <h2 style="text-align:center">Staff sign in</h2>
+      <p class="sub" style="text-align:center">Select your name and enter your PIN.</p>
+      <label>Your name</label>
+      <select id="sl-name"></select>
+      <label>PIN</label>
+      <input type="password" id="sl-pin" inputmode="numeric" placeholder="••••" style="text-align:center;letter-spacing:6px">
+      <button class="btn" id="sl-btn">Sign in</button>
+      <div class="msg" id="sl-msg"></div>
+    </div>
+
+    <!-- staff app -->
+    <div id="staff-app" style="display:none">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div><h2 id="hi-name">Log your shift</h2><p class="sub" style="margin:0">Pick the client, then check in on site.</p></div>
+          <button class="linkbtn" id="sl-out">Sign out</button>
+        </div>
+        <label style="margin-top:18px">Client / location</label>
+        <select id="s-client"></select>
+        <label>Shift type</label>
+        <div class="seg" id="s-type">
+          <button data-t="hourly" class="on">Hourly</button>
+          <button data-t="livein">Live-in</button>
+        </div>
+        <div id="s-hourly">
+          <div class="row">
+            <div><label>Date</label><input type="date" id="s-date"></div>
+            <div><label>Arrival time</label><input type="time" id="s-arr"></div>
+          </div>
+          <p class="small" style="margin-top:8px">Record your departure when you check out at the end of the shift.</p>
+        </div>
+        <div id="s-livein" style="display:none">
+          <div class="row">
+            <div><label>Start date</label><input type="date" id="s-start"></div>
+            <div><label>End date</label><input type="date" id="s-end"></div>
+          </div>
+          <p class="small" style="margin-top:8px">Live-in is counted in <strong>days</strong> — no hours calculated.</p>
+        </div>
+        <button class="btn" id="s-submit">📍 Verify location &amp; check in</button>
+        <div class="msg" id="s-msg"></div>
+      </div>
+      <div class="card" id="s-active" style="display:none">
+        <h2>Your open shifts</h2><p class="sub">Tap to check out when you finish — you must be on site.</p>
+        <div id="s-active-list"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import { auth, db, $, showMsg, clearMsg, haversine, getPos, hashPin, calcHours, friendlyErr, firebaseConfig }
+  from "./app-core.js";
+import { signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+if(!firebaseConfig.projectId || firebaseConfig.projectId==="PASTE_PROJECT_ID"){
+  $('setup-banner').innerHTML=`<div class="banner"><strong>⚙ Setup needed.</strong> Add your Firebase config in <code>app-core.js</code>.</div>`;
+}
+
+let currentStaff=null, CLIENTS=[], STAFF=[], RADIUS=250, shiftType='hourly', openUnsub=null;
+
+onAuthStateChanged(auth, async user=>{
+  if(!user){ try{ await signInAnonymously(auth);}catch(e){console.error(e);} return; }
+  await loadAll();
+});
+
+async function loadAll(){
+  try{
+    const cs=await getDocs(collection(db,'clients'));
+    CLIENTS=cs.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name));
+    const ss=await getDocs(collection(db,'staff'));
+    STAFF=ss.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name));
+    const cfg=await getDoc(doc(db,'config','settings'));
+    RADIUS=cfg.exists()?(cfg.data().radiusM||250):250;
+  }catch(e){console.error(e);}
+  $('sl-name').innerHTML=`<option value="">Select your name…</option>`+STAFF.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  $('s-client').innerHTML=`<option value="">Select client…</option>`+CLIENTS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+$('sl-btn').onclick=async()=>{
+  const id=$('sl-name').value, pin=$('sl-pin').value.trim();
+  if(!id) return showMsg('sl-msg','bad','Please select your name.');
+  if(!pin) return showMsg('sl-msg','bad','Please enter your PIN.');
+  const staff=STAFF.find(s=>s.id===id);
+  if(!staff||!staff.pinHash) return showMsg('sl-msg','bad','No PIN set for this staff member. Ask your admin.');
+  const h=await hashPin(staff.name,pin);
+  if(h!==staff.pinHash) return showMsg('sl-msg','bad','Incorrect PIN.');
+  currentStaff=staff; clearMsg('sl-msg');
+  $('staff-login').style.display='none'; $('staff-app').style.display='block';
+  $('hi-name').textContent=`Hi ${staff.name.split(' ')[0]} — log your shift`;
+  const today=new Date().toISOString().slice(0,10);
+  $('s-date').value=today; $('s-start').value=today;
+  listenOpenShifts();
+};
+$('sl-out').onclick=()=>{ currentStaff=null; if(openUnsub)openUnsub(); $('staff-app').style.display='none'; $('staff-login').style.display='block'; $('sl-pin').value=''; };
+
+document.querySelectorAll('#s-type button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#s-type button').forEach(x=>x.classList.remove('on'));b.classList.add('on');shiftType=b.dataset.t;
+  $('s-hourly').style.display=shiftType==='hourly'?'block':'none';$('s-livein').style.display=shiftType==='livein'?'block':'none';
+});
+
+$('s-submit').onclick=async()=>{
+  const cid=$('s-client').value;
+  if(!cid) return showMsg('s-msg','bad','Please select a client.');
+  const client=CLIENTS.find(c=>c.id===cid);
+  const shortName=client.name.split('(')[0].trim();
+  const btn=$('s-submit');
+
+  if(shiftType==='livein'){
+    const start=$('s-start').value,end=$('s-end').value;
+    if(!start||!end) return showMsg('s-msg','bad','Please pick start and end dates.');
+    if(end<start) return showMsg('s-msg','bad','End date must be on or after start date.');
+    const days=Math.round((new Date(end)-new Date(start))/864e5)+1;
+    btn.disabled=true; showMsg('s-msg','info','📍 Verifying location…');
+    try{
+      const pos=await getPos(); const dist=haversine(pos.lat,pos.lng,client.lat,client.lng);
+      if(dist>RADIUS){btn.disabled=false;return showMsg('s-msg','bad',`Check-in blocked — you appear to be <strong>${Math.round(dist)}m</strong> from ${shortName} (limit ${RADIUS}m). You must be on site to log a live-in placement.`);}
+      await addDoc(collection(db,'shifts'),{staffId:currentStaff.id,staffName:currentStaff.name,client:client.name,type:'livein',start,end,days,checkInAt:new Date().toISOString(),status:'done',dist:Math.round(dist)});
+      showMsg('s-msg','ok',`✓ Live-in logged: <strong>${days} day${days>1?'s':''}</strong> at ${shortName} (${start} → ${end}).`);
+    }catch(err){showMsg('s-msg','bad',typeof err==='string'?err:friendlyErr(err));}
+    btn.disabled=false; return;
+  }
+
+  const date=$('s-date').value,arr=$('s-arr').value;
+  if(!date||!arr) return showMsg('s-msg','bad','Please enter date and arrival time.');
+  btn.disabled=true; showMsg('s-msg','info','📍 Verifying your location…');
+  try{
+    const pos=await getPos(); const dist=haversine(pos.lat,pos.lng,client.lat,client.lng);
+    if(dist>RADIUS){btn.disabled=false;return showMsg('s-msg','bad',`Check-in blocked — you appear to be <strong>${Math.round(dist)}m</strong> from ${shortName} (limit ${RADIUS}m). Please check in once you're on site.`);}
+    await addDoc(collection(db,'shifts'),{staffId:currentStaff.id,staffName:currentStaff.name,client:client.name,type:'hourly',date,arrival:arr,departure:null,hours:null,checkInAt:new Date().toISOString(),status:'open',dist:Math.round(dist)});
+    showMsg('s-msg','ok',`✓ Checked in at ${shortName} (${Math.round(dist)}m from site). Shift open — check out below when you finish.`);
+  }catch(err){showMsg('s-msg','bad',typeof err==='string'?err:friendlyErr(err));}
+  btn.disabled=false;
+};
+
+function listenOpenShifts(){
+  if(openUnsub) openUnsub();
+  openUnsub=onSnapshot(collection(db,'shifts'),snap=>{
+    const open=snap.docs.map(d=>({id:d.id,...d.data()})).filter(s=>s.type==='hourly'&&s.status==='open'&&s.staffId===currentStaff?.id);
+    const box=$('s-active'),list=$('s-active-list');
+    if(open.length===0){box.style.display='none';return;}
+    box.style.display='block';
+    list.innerHTML=open.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)">
+      <div><strong>${s.client.split('(')[0].trim()}</strong> <span class="pill live">OPEN</span><br>
+      <span class="small">In at ${s.arrival} on ${s.date}</span></div>
+      <button class="btn" style="width:auto;margin:0;padding:10px 16px" data-co="${s.id}">Check out</button></div>`).join('');
+    list.querySelectorAll('[data-co]').forEach(b=>b.onclick=()=>checkout(b.dataset.co));
+  });
+}
+
+async function checkout(id){
+  const ref=doc(db,'shifts',id); const snap=await getDoc(ref);
+  if(!snap.exists()) return;
+  const s=snap.data();
+  const shortName=s.client.split('(')[0].trim();
+  const client=CLIENTS.find(c=>c.name===s.client);
+  showMsg('s-msg','info','📍 Verifying location for checkout…');
+  try{
+    let dist=null;
+    if(client){
+      const pos=await getPos();
+      dist=haversine(pos.lat,pos.lng,client.lat,client.lng);
+      if(dist>RADIUS) return showMsg('s-msg','bad',`Checkout blocked — you appear to be <strong>${Math.round(dist)}m</strong> from ${shortName} (limit ${RADIUS}m). Please check out while you're still on site.`);
+    }
+    const now=new Date(); const dep=now.toTimeString().slice(0,5);
+    const hours=calcHours(s.arrival,dep);
+    await updateDoc(ref,{departure:dep,status:'done',hours,checkOutAt:now.toISOString(),checkoutDist:dist!=null?Math.round(dist):null});
+    showMsg('s-msg','ok',`✓ Checked out at ${dep}. ${hours.toFixed(2)} hours recorded.`);
+  }catch(err){ showMsg('s-msg','bad', typeof err==='string'?err:friendlyErr(err)); }
+}
+</script>
+</body>
+</html>

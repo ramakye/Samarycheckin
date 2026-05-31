@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthed() { return request.auth != null; }
+    function isAdmin() {
+      return isAuthed() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // App settings (check-in radius). Anyone signed in can read; only admins write.
+    match /config/{doc} {
+      allow read: if isAuthed();
+      allow write: if isAdmin();
+    }
+
+    // Client locations. Staff need to read these to check in; only admins edit.
+    match /clients/{doc} {
+      allow read: if isAuthed();
+      allow write: if isAdmin();
+    }
+
+    // Staff records (name + hashed PIN). Readable by signed-in users for login; only admins manage.
+    match /staff/{doc} {
+      allow read: if isAuthed();
+      allow write: if isAdmin();
+    }
+
+    // Admin allow-list. Maps an Auth UID to admin rights. Created manually in the console.
+    match /admins/{uid} {
+      allow read: if isAuthed();
+      allow write: if false;   // change only via the Firebase console
+    }
+
+    // Shift records. Any signed-in user can create/update (check in / check out);
+    // only admins can delete.
+    match /shifts/{doc} {
+      allow read:   if isAuthed();
+      allow create: if isAuthed();
+      allow update: if isAuthed();
+      allow delete: if isAdmin();
+    }
+  }
+}
