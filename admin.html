@@ -141,14 +141,14 @@ import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateD
 
 const RADIUS_DEFAULT=250, STALE_HOURS=18;
 const DEFAULT_CLIENTS=[
-  {name:"94 Camlet Way, Hadley Wood (Dom care)",lat:51.6680,lng:-0.1860},
-  {name:"4 Larman's Road, Enfield (Enfield Unit, Live-in)",lat:51.6610,lng:-0.0290},
-  {name:"31 Northumberland Park (Tottenham Unit)",lat:51.6010,lng:-0.0560},
-  {name:"143 Maltby Drive, Enfield (Zoe's support)",lat:51.6730,lng:-0.0840},
-  {name:"6 & 8 Balfour Mews, Edmonton (Live-in)",lat:51.6160,lng:-0.0590},
-  {name:"3 Balfour Mews, Edmonton (Live-in)",lat:51.6160,lng:-0.0590},
+  {name:"94 Camlet Way, Hadley Wood ",lat:51.6680,lng:-0.1860},
+  {name:"4 Larman's Road, Enfield",lat:51.6610,lng:-0.0290},
+  {name:"31 Northumberland Park",lat:51.6010,lng:-0.0560},
+  {name:"143 Maltby Drive, Enfield",lat:51.6730,lng:-0.0840},
+  {name:"6 & 8 Balfour Mews, Edmonton",lat:51.6160,lng:-0.0590},
+  {name:"3 Balfour Mews, Edmonton",lat:51.6160,lng:-0.0590},
   {name:"260a Mount Pleasant Road",lat:51.5940,lng:-0.0680},
-  {name:"262 Craven Park Road, Stamford Hill (Homeyra)",lat:51.5720,lng:-0.0760}
+  {name:"262 Craven Park Road, Stamford Hill",lat:51.5720,lng:-0.0760}
 ];
 let app,auth,db,CLIENTS=[],STAFF=[],RADIUS=RADIUS_DEFAULT,ALL=[];
 const $=id=>document.getElementById(id);
